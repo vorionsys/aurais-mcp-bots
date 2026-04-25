@@ -1,0 +1,33 @@
+{
+  "name": "aurais-mcp-bots",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo for the 5 Aurais MCP servers (journal companion, market scout, meeting distiller, research reader, writing editor). All bots dedup'd onto @vorionsys/aurais-core for proof-chain + CAR identity.",
+  "license": "Apache-2.0",
+  "author": "Vorion LLC <team@vorion.org>",
+  "homepage": "https://github.com/voriongit/aurais-mcp-bots",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/voriongit/aurais-mcp-bots.git"
+  },
+  "bugs": {
+    "url": "https://github.com/voriongit/aurais-mcp-bots/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "node -e \"['journal-companion','market-scout','meeting-distiller','research-reader','writing-editor'].forEach(p => require('node:fs').rmSync('packages/'+p+'/dist',{recursive:true,force:true}))\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.17",
+    "typescript": "^5.9.3"
+  }
+}
