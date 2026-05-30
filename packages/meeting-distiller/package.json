@@ -42,7 +42,7 @@
     "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE','LICENSE')\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.90.0",
+    "@anthropic-ai/sdk": "^0.100.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "@vorionsys/aurais-core": "^0.1.0",
     "zod": "^3.24.1"
