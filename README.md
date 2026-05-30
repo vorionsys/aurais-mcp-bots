@@ -7,9 +7,9 @@ Five Aurais MCP servers — one monorepo, one shared core. Each bot is a standal
 | Package directory | npm name | Tool | Capability |
 |-------------------|----------|------|------------|
 | `packages/journal-companion` | `@vorionsys/aurais-mcp-journal-companion` | `reflect_on_entry` | Paste a journal entry, get a structured reflection (mood, themes, gratitude, one gentle question). Crisis-aware. |
-| `packages/market-scout` | `@vorionsys/aurais-mcp-market-scout` | `generate_briefing` | Tickers in, per-ticker briefings out (RSI, MACD, SMA, volume, relative strength vs SPY). |
+| `packages/market-scout` | `@vorionsys/aurais-mcp-market-scout` | `brief_tickers` | Tickers in, per-ticker briefings out (RSI, MACD, SMA, volume, relative strength vs SPY). |
 | `packages/meeting-distiller` | `@vorionsys/aurais-mcp-meeting-distiller` | `distill_meeting` | Paste a transcript, get decisions + action items (with owner / due) + follow-ups + open questions + risks. |
-| `packages/research-reader` | `@vorionsys/aurais-mcp-research-reader` | `read_paper` | Paste a paper or article, get a structured read with verbatim-verified quotes. |
+| `packages/research-reader` | `@vorionsys/aurais-mcp-research-reader` | `read_source` | Paste a paper or article, get a structured read with verbatim-verified quotes. |
 | `packages/writing-editor` | `@vorionsys/aurais-mcp-writing-editor` | `critique_draft` | Paste a draft + audience + tone, get structural / sentence-level / tone critique. Never rewrites your prose. |
 
 Every bot also exposes `get_agent_identity` — returns the bot's CAR ID, tier, capabilities, and deployment fingerprint with no API call.

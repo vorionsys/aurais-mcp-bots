@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node 22
         uses: actions/setup-node@v4
@@ -25,7 +27,9 @@ jobs:
             echo "::error::GH_TOKEN is required to install @vorionsys/aurais-core via GitHub URL until it is published to npm."
             exit 1
           fi
-          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global --add url."https://github.com/".insteadOf "git@github.com:"
+          git config --global http.https://github.com/.extraheader "Authorization: Basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
 
       - name: Install
         run: npm ci
