@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-writing-editor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Aurais Writing Editor as an MCP server — paste a draft + audience + tone, get structural, sentence-level, and tone critique. Never rewrites your prose. Signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",
@@ -36,12 +36,14 @@
     "build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
+    "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE','LICENSE')\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
     "@modelcontextprotocol/sdk": "^1.28.0",
-    "@vorionsys/aurais-core": "github:voriongit/aurais-core#main",
+    "@vorionsys/aurais-core": "^0.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

@@ -30,7 +30,7 @@ import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { distillMeeting } from "./lib/distiller.js";
 import { MEETING_DISTILLER_IDENTITY } from "./identity.js";
 
-const PACKAGE_VERSION = "0.2.0";
+const PACKAGE_VERSION = "0.3.0";
 
 function requireApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";

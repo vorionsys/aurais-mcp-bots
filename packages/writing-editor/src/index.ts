@@ -6,7 +6,7 @@ import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { editDraft, type EditorSuggestion } from "./lib/analyzer.js";
 import { WRITING_EDITOR_IDENTITY } from "./identity.js";
 
-const PACKAGE_VERSION = "0.2.0";
+const PACKAGE_VERSION = "0.3.0";
 
 function requireApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";

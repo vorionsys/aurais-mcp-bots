@@ -75,15 +75,15 @@ After building, register a bot in your MCP client. Example for Claude Desktop / 
 
 (Replace `meeting-distiller` with any of the other four bot names. Each is published as `@vorionsys/aurais-mcp-<name>`.)
 
-## Important: `@vorionsys/aurais-core` is not yet on npm
+## `@vorionsys/aurais-core` dependency
 
-While step 1 (extraction) shipped, **`@vorionsys/aurais-core@0.1.0` has NOT yet been published to npm** — the `vorionsys` npm scope is owned by accounts (`vorion_llc`, `highdragon`, `brnxfinest`) only the founder controls. Until the founder runs `npm publish --access=public` from the `voriongit/aurais-core` repo, every package in this monorepo declares the dependency as a GitHub URL:
+All five packages consume the shared core from npm via a semver range:
 
 ```json
-"@vorionsys/aurais-core": "github:voriongit/aurais-core#main"
+"@vorionsys/aurais-core": "^0.1.0"
 ```
 
-This works locally and in CI as long as `gh auth` is set (or `GH_TOKEN` is exported in CI). After the founder publishes, **switch every package's `@vorionsys/aurais-core` dep to a semver range** (`^0.1.0`) and bump each MCP package one minor version. The CI workflow already requires `GH_TOKEN`; once switched to npm semver, that requirement can be relaxed.
+`@vorionsys/aurais-core@0.1.0` is published publicly on npm, so `npm install`, CI, and `npx -y @vorionsys/aurais-mcp-<name>` all resolve it with no token or SSH key. (Earlier pre-publish revisions of this repo pinned the dep to a GitHub URL and required a `GH_TOKEN` secret in CI — that's no longer needed.)
 
 ## Verify a proof chain
 

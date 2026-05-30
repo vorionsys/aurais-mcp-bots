@@ -19,18 +19,6 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Configure git for GitHub URL deps (private @vorionsys/aurais-core)
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_TOKEN is required to install @vorionsys/aurais-core via GitHub URL until it is published to npm."
-            exit 1
-          fi
-          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-          git config --global --add url."https://github.com/".insteadOf "git@github.com:"
-          git config --global http.https://github.com/.extraheader "Authorization: Basic $(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 -w0)"
-
       - name: Install
         run: npm ci
 
