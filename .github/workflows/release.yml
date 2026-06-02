@@ -6,7 +6,21 @@ name: Release
 #           published with whatever version each declares in its
 #           package.json — keep them in lock-step.
 #
-# Required secrets:
+# Auth: OIDC trusted publishing (primary) with a token fallback.
+#   npm tries OIDC first, then falls back to NODE_AUTH_TOKEN, so this stays
+#   green whether or not the npmjs.com trusted publisher is configured yet.
+#
+#   Trusted publishing (no long-lived secret) requires a ONE-TIME setup on
+#   npmjs.com, per package — for all 5 @vorionsys/aurais-mcp-* packages:
+#     npmjs.com/package/<name>/access -> Trusted Publisher -> GitHub Actions
+#       Organization/user: voriongit
+#       Repository:        aurais-mcp-bots
+#       Workflow filename: release.yml   (filename only, not the full path)
+#   It also needs npm CLI >= 11.5.1 (the upgrade step below) and the
+#   `id-token: write` permission. Once all 5 are configured and an OIDC
+#   publish is confirmed, NPM_TOKEN can be deleted (see phase-2 note below).
+#
+# Optional secret (transitional fallback, remove after OIDC is confirmed):
 #   - NPM_TOKEN  : @vorionsys-scoped automation token with publish rights.
 
 on:
@@ -19,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # required for npm --provenance attestations
+      id-token: write  # required for OIDC trusted publishing + provenance
     steps:
       - uses: actions/checkout@v5
 
@@ -28,6 +42,12 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      # OIDC trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x,
+      # which silently ignores OIDC and falls back to the token. Upgrade so
+      # OIDC actually engages.
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install
         run: npm ci
@@ -41,6 +61,10 @@ jobs:
       - name: Test
         run: npm test --workspaces --if-present
 
+      # npm authenticates via OIDC first (no secret needed once the npmjs.com
+      # trusted publisher is configured), then falls back to NODE_AUTH_TOKEN.
+      # --provenance is kept explicit: it's automatic under OIDC, but harmless
+      # and ensures attestations under the token path too.
       - name: Publish all workspaces to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
