@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-journal-companion",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Aurais Journal Companion as an MCP server — paste a journal entry, get a gentle structured reflection (mood, themes, gratitude, one question) + a signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",

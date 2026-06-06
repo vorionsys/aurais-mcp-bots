@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-research-reader",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Aurais Research Reader as an MCP server — paste a paper or article, get a structured read with verbatim-verified quotes + a signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",
