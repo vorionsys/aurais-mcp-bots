@@ -15,7 +15,7 @@
   "homepage": "https://github.com/voriongit/aurais-mcp-bots/tree/main/packages/journal-companion",
   "repository": {
     "type": "git",
-    "url": "https://github.com/voriongit/aurais-mcp-bots.git",
+    "url": "git+https://github.com/voriongit/aurais-mcp-bots.git",
     "directory": "packages/journal-companion"
   },
   "bugs": {
@@ -25,7 +25,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aurais-mcp-journal-companion": "./dist/index.js"
+    "aurais-mcp-journal-companion": "dist/index.js"
   },
   "files": [
     "dist",

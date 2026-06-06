@@ -6,22 +6,19 @@ name: Release
 #           published with whatever version each declares in its
 #           package.json — keep them in lock-step.
 #
-# Auth: OIDC trusted publishing (primary) with a token fallback.
-#   npm tries OIDC first, then falls back to NODE_AUTH_TOKEN, so this stays
-#   green whether or not the npmjs.com trusted publisher is configured yet.
+# Auth: OIDC trusted publishing — no long-lived secret. Confirmed live in
+#   v0.3.1 (all 5 packages show `_npmUser.trustedPublisher` on the registry).
 #
-#   Trusted publishing (no long-lived secret) requires a ONE-TIME setup on
-#   npmjs.com, per package — for all 5 @vorionsys/aurais-mcp-* packages:
+#   Each package has a trusted publisher configured on npmjs.com:
 #     npmjs.com/package/<name>/access -> Trusted Publisher -> GitHub Actions
 #       Organization/user: voriongit
 #       Repository:        aurais-mcp-bots
 #       Workflow filename: release.yml   (filename only, not the full path)
+#       Environment:       (none — keep blank; this job sets no environment)
 #   It also needs npm CLI >= 11.5.1 (the upgrade step below) and the
-#   `id-token: write` permission. Once all 5 are configured and an OIDC
-#   publish is confirmed, NPM_TOKEN can be deleted (see phase-2 note below).
+#   `id-token: write` permission.
 #
-# Optional secret (transitional fallback, remove after OIDC is confirmed):
-#   - NPM_TOKEN  : @vorionsys-scoped automation token with publish rights.
+# No secrets required. NPM_TOKEN has been retired.
 
 on:
   push:
@@ -61,11 +58,7 @@ jobs:
       - name: Test
         run: npm test --workspaces --if-present
 
-      # npm authenticates via OIDC first (no secret needed once the npmjs.com
-      # trusted publisher is configured), then falls back to NODE_AUTH_TOKEN.
-      # --provenance is kept explicit: it's automatic under OIDC, but harmless
-      # and ensures attestations under the token path too.
+      # Authenticates via OIDC trusted publishing (no token). --provenance is
+      # automatic under OIDC; kept explicit as a defensive assertion.
       - name: Publish all workspaces to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --workspaces --access=public --provenance

@@ -16,7 +16,7 @@
   "homepage": "https://github.com/voriongit/aurais-mcp-bots/tree/main/packages/market-scout",
   "repository": {
     "type": "git",
-    "url": "https://github.com/voriongit/aurais-mcp-bots.git",
+    "url": "git+https://github.com/voriongit/aurais-mcp-bots.git",
     "directory": "packages/market-scout"
   },
   "bugs": {
@@ -26,7 +26,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aurais-mcp-market-scout": "./dist/index.js"
+    "aurais-mcp-market-scout": "dist/index.js"
   },
   "files": [
     "dist",
