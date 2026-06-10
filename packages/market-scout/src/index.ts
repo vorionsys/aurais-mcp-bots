@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -6,7 +7,11 @@ import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { generateBriefing } from "./lib/briefing.js";
 import { MARKET_SCOUT_IDENTITY } from "./identity.js";
 
-const PACKAGE_VERSION = "0.3.0";
+// Single source of truth: package version read at runtime from the package
+// root (relative to the built dist/index.js). No hardcode to go stale.
+const PACKAGE_VERSION: string = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+).version;
 
 function requireApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
@@ -22,8 +27,9 @@ server.tool(
   {
     tickers: z.array(z.string().min(1).max(12)).min(1).max(10).describe("Array of 1-10 ticker symbols. Stocks, ETFs, or crypto pairs like BTC-USD. Example: ['AAPL', 'NVDA', 'SPY', 'BTC-USD']."),
     model: z.enum(["claude-sonnet-4-5", "claude-opus-4-5", "claude-haiku-4-5"]).optional(),
+    upstreamProof: z.string().max(128).optional().describe("Optional tipHash from a prior Aurais bot run, recorded in this run's proof chain to link provenance across bots."),
   },
-  async ({ tickers, model }) => {
+  async ({ tickers, model, upstreamProof }) => {
     let apiKey: string;
     try { apiKey = requireApiKey(); } catch (e) {
       return { isError: true, content: [{ type: "text", text: (e as Error).message }] };
@@ -32,7 +38,7 @@ server.tool(
       const clean = tickers.map((t) => t.trim().toUpperCase()).filter((t) => /^[A-Z0-9.\-]{1,12}$/.test(t));
       if (clean.length === 0) return { isError: true, content: [{ type: "text", text: "no valid tickers" }] };
 
-      const result = await generateBriefing({ tickers: clean, anthropicApiKey: apiKey, model, requestMeta: { clientHint: "mcp-client" } });
+      const result = await generateBriefing({ tickers: clean, anthropicApiKey: apiKey, model, requestMeta: { clientHint: "mcp-client", upstreamProof, packageVersion: PACKAGE_VERSION } });
       const lines: string[] = [
         `# Market Scout — ${new Date(result.generatedAt).toISOString().slice(0, 10)}`,
         `Aggregate: overbought ${result.aggregate.overbought} · oversold ${result.aggregate.oversold} · uptrend ${result.aggregate.uptrend} · downtrend ${result.aggregate.downtrend}`,

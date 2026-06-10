@@ -23,6 +23,7 @@
  *   - get_agent_identity → returns the bot's CAR ID, tier, capabilities (no API call)
  */
 
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -30,7 +31,12 @@ import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { distillMeeting } from "./lib/distiller.js";
 import { MEETING_DISTILLER_IDENTITY } from "./identity.js";
 
-const PACKAGE_VERSION = "0.3.0";
+// Single source of truth: the published package version, read from the
+// package.json at the package root (resolved relative to the built
+// dist/index.js at runtime). Avoids a hardcode that goes stale every release.
+const PACKAGE_VERSION: string = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+).version;
 
 function requireApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
@@ -60,8 +66,18 @@ server.tool(
       .enum(["claude-sonnet-4-5", "claude-opus-4-5", "claude-haiku-4-5"])
       .optional()
       .describe("Which Claude model to use. Defaults to claude-sonnet-4-5."),
+    upstreamProof: z
+      .string()
+      .max(128)
+      .optional()
+      .describe(
+        "Optional tipHash from a prior Aurais bot run that produced this transcript " +
+          "(e.g. another distiller or research-reader). Recorded in this run's proof " +
+          "chain to link provenance across bots — lets a verifier trace this output " +
+          "back to its upstream source.",
+      ),
   },
-  async ({ transcript, model }) => {
+  async ({ transcript, model, upstreamProof }) => {
     let apiKey: string;
     try {
       apiKey = requireApiKey();
@@ -77,7 +93,7 @@ server.tool(
         transcript,
         anthropicApiKey: apiKey,
         model,
-        requestMeta: { clientHint: "mcp-client" },
+        requestMeta: { clientHint: "mcp-client", upstreamProof, packageVersion: PACKAGE_VERSION },
       });
       // Return a dense text summary for LLM consumption + full JSON for programmatic use
       const summaryText = formatHumanSummary(result);

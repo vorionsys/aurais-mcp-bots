@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -6,7 +7,11 @@ import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { analyzeJournal } from "./lib/analyzer.js";
 import { JOURNAL_COMPANION_IDENTITY } from "./identity.js";
 
-const PACKAGE_VERSION = "0.3.0";
+// Single source of truth: package version read at runtime from the package
+// root (relative to the built dist/index.js). No hardcode to go stale.
+const PACKAGE_VERSION: string = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+).version;
 
 function requireApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
@@ -22,14 +27,15 @@ server.tool(
   {
     entry: z.string().min(10, "entry must be at least 10 chars").max(8000, "entry must be at most 8000 chars").describe("The journal entry to reflect on. Any tone, any length 10-8000 chars."),
     model: z.enum(["claude-sonnet-4-5", "claude-opus-4-5", "claude-haiku-4-5"]).optional(),
+    upstreamProof: z.string().max(128).optional().describe("Optional tipHash from a prior Aurais bot run, recorded in this run's proof chain to link provenance across bots."),
   },
-  async ({ entry, model }) => {
+  async ({ entry, model, upstreamProof }) => {
     let apiKey: string;
     try { apiKey = requireApiKey(); } catch (e) {
       return { isError: true, content: [{ type: "text", text: (e as Error).message }] };
     }
     try {
-      const result = await analyzeJournal({ entry, anthropicApiKey: apiKey, model, requestMeta: { clientHint: "mcp-client" } });
+      const result = await analyzeJournal({ entry, anthropicApiKey: apiKey, model, requestMeta: { clientHint: "mcp-client", upstreamProof, packageVersion: PACKAGE_VERSION } });
       const { analysis, agent, proofChain, tipHash } = result;
       const lines = [
         `MOOD · ${analysis.moodLabel} · ${analysis.moodScore >= 0 ? "+" : ""}${analysis.moodScore}\n`,

@@ -59,7 +59,7 @@ async function commentary(client: Anthropic, snap: Snapshot, model: string): Pro
 
 export async function generateBriefing(params: {
   tickers: string[]; anthropicApiKey: string; model?: string;
-  requestMeta?: { clientHint?: string };
+  requestMeta?: { clientHint?: string; upstreamProof?: string; packageVersion?: string };
 }): Promise<BriefingResult> {
   const model = params.model ?? "claude-sonnet-4-5";
   const client = new Anthropic({ apiKey: params.anthropicApiKey });
@@ -70,7 +70,8 @@ export async function generateBriefing(params: {
     bot: agent.agentId, car_id: agent.carId, operation_id: agent.operationId,
     org_id: agent.orgId, deployment_id: agent.deploymentId, context_hash: agent.contextHash,
     tier: agent.currentTier, trust_ceiling: agent.trustCeiling, registration_status: agent.registrationStatus,
-    risk_level: "READ", model, runtime: "mcp-stdio", client_hint: params.requestMeta?.clientHint ?? null,
+    risk_level: "READ", model, runtime: "mcp-stdio", package_version: params.requestMeta?.packageVersion ?? null,
+    client_hint: params.requestMeta?.clientHint ?? null, upstream_proof: params.requestMeta?.upstreamProof ?? null,
     tickers: params.tickers, ticker_count: params.tickers.length,
   });
 

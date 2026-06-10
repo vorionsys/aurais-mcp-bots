@@ -14,6 +14,23 @@ Five Aurais MCP servers — one monorepo, one shared core. Each bot is a standal
 
 Every bot also exposes `get_agent_identity` — returns the bot's CAR ID, tier, capabilities, and deployment fingerprint with no API call.
 
+## Chaining bots (cross-bot provenance)
+
+Each tool accepts an optional `upstreamProof` argument: the `tipHash` from a
+prior Aurais bot run. When supplied, it's recorded in this run's
+`session_started` event, so a verifier can trace one bot's output back to the
+upstream run that fed it — a provenance graph across bots, not just within one.
+
+```
+research-reader.read_source(paper)        → tipHash A
+writing-editor.critique_draft(            → tipHash B, whose chain records
+  draft, upstreamProof: A)                  upstream_proof = A
+```
+
+Every `session_started` event also records `package_version` (the running
+package's real version, read from its `package.json` — not a hardcode), so a
+chain attests exactly which published build produced it.
+
 ## Architecture
 
 All five bots share `@vorionsys/aurais-core` for the load-bearing trust primitives:
@@ -87,15 +104,28 @@ All five packages consume the shared core from npm via a semver range:
 
 ## Verify a proof chain
 
-Run any bot, capture the JSON output's `proofChain` array, and verify offline:
+Run any bot, capture the JSON output, and verify it offline with the bundled
+verifier — no network, no API key:
 
-```ts
-import { canonicalJSON, sha256 } from "@vorionsys/aurais-core";
-import { verify } from "node:crypto";
-// for each event: recompute prev_hash, verify ed25519 sig over canonicalJSON(event - sig).
+```bash
+# verify a saved result (bare chain or full tool-result JSON both work)
+npx @vorionsys/aurais-verify result.json
+
+# or pipe a bot's output straight in
+some-aurais-bot | npx @vorionsys/aurais-verify
 ```
 
-The official verifier ships at `https://www.aurais.net/verify` (web UI) and a CLI is on the roadmap (`@vorionsys/aurais-cli`).
+It checks every event's **ed25519 signature**, the **hash links** between
+events, **sequence** integrity, and **key consistency**, then recomputes the
+tip. Exit code `0` = verified, `1` = failed. See
+[`packages/proof-verifier`](packages/proof-verifier) for the full check list,
+the library API (`verifyProofChain`), and the important distinction between
+integrity (what it proves) and signer identity (what it can't, for
+session-scoped keys).
+
+Prefer a library? `@vorionsys/aurais-core` exports the same `canonicalJSON` +
+`sha256` primitives the chain is built from. A web verifier also runs at
+`https://www.aurais.net/verify`.
 
 ## License
 

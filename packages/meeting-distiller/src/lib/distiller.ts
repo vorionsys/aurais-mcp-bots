@@ -94,7 +94,7 @@ export async function distillMeeting(params: {
   transcript: string;
   anthropicApiKey: string;
   model?: string;
-  requestMeta?: { clientHint?: string };
+  requestMeta?: { clientHint?: string; upstreamProof?: string; packageVersion?: string };
 }): Promise<MeetingResult> {
   const model = params.model ?? "claude-sonnet-4-5";
   const client = new Anthropic({ apiKey: params.anthropicApiKey });
@@ -116,7 +116,9 @@ export async function distillMeeting(params: {
     risk_level: "READ",
     model,
     runtime: "mcp-stdio",
+    package_version: params.requestMeta?.packageVersion ?? null,
     client_hint: params.requestMeta?.clientHint ?? null,
+    upstream_proof: params.requestMeta?.upstreamProof ?? null,
     transcript_length_chars: params.transcript.length,
     transcript_hash: transcriptHash,
   });
