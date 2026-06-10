@@ -114,8 +114,40 @@ AURAIS_TRANSPORT=http PORT=3000 npx -y @vorionsys/aurais-mcp-meeting-distiller
 > **Serve HTTP behind TLS.** The key is sent on every request, so terminate
 > HTTPS at a proxy (or in front of the container) before exposing it. The
 > built-in server speaks plain HTTP and is meant to sit behind that boundary.
-> For first-class listing in connector UIs, OAuth 2.1 is the spec-standard auth
-> and a natural follow-up to the header-key model here.
+
+### OAuth 2.1 (spec-standard auth for remote servers)
+
+In HTTP mode each bot can additionally act as an **OAuth 2.1 resource server**
+per the [MCP authorization spec (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization).
+Enable it by pointing the bot at your authorization server and declaring its
+own canonical URL:
+
+```bash
+AURAIS_TRANSPORT=http PORT=3000 \
+AURAIS_OAUTH_ISSUER=https://auth.example.com \
+AURAIS_OAUTH_RESOURCE=https://bots.example.com/mcp \
+npx -y @vorionsys/aurais-mcp-meeting-distiller
+```
+
+When enabled, every MCP request must carry `Authorization: Bearer <jwt>` and
+the bot enforces the spec's MUSTs:
+
+- **Signature** — verified against the issuer's JWKS (discovered via RFC 8414 /
+  OIDC metadata, cached, rotation-aware).
+- **Audience binding (RFC 8707)** — `aud` must equal `AURAIS_OAUTH_RESOURCE`;
+  tokens minted for any other service are rejected. Inbound tokens are never
+  forwarded upstream (token passthrough is forbidden by spec).
+- **Issuer + expiry** — `iss` must match, `exp` is enforced (5 s clock tolerance).
+- **Discovery** — RFC 9728 protected-resource metadata is served at
+  `/.well-known/oauth-protected-resource` (and the path-appended form), and
+  401 responses carry `WWW-Authenticate: Bearer … resource_metadata="…"` so
+  MCP clients can find your authorization server automatically.
+
+OAuth **authenticates the caller**; it does not replace BYOK — the
+`X-Anthropic-Key` header still supplies the caller's own Anthropic key. Any
+OAuth 2.1 / OIDC provider that signs JWT access tokens and serves a JWKS works
+as the authorization server (Auth0, Keycloak, WorkOS, etc.). Both env vars
+unset → no auth required, exactly as before.
 
 ## `@vorionsys/aurais-core` dependency
 
