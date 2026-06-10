@@ -24,8 +24,12 @@
  */
 
 import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { distillMeeting } from "./lib/distiller.js";
@@ -38,11 +42,28 @@ const PACKAGE_VERSION: string = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 ).version;
 
-function requireApiKey(): string {
-  const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
+type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+/**
+ * Resolve the Anthropic API key for a tool call from one of two sources:
+ *
+ *  - stdio transport (local): the ANTHROPIC_API_KEY env var, set in the MCP
+ *    client's config — the original BYOK model.
+ *  - HTTP transport (remote): the per-request `X-Anthropic-Key` header, so the
+ *    caller supplies (and pays for) their own key. No long-lived key lives on
+ *    the server. MUST be served over HTTPS, since the key is sent per request.
+ *
+ * Header takes precedence when present so the same build serves both modes.
+ */
+function resolveApiKey(extra: ToolExtra): string {
+  const header = extra.requestInfo?.headers?.["x-anthropic-key"];
+  const fromHeader = (Array.isArray(header) ? header[0] : header)?.trim() ?? "";
+  const fromEnv = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
+  const key = fromHeader || fromEnv;
   if (!key.startsWith("sk-ant-")) {
     throw new Error(
-      "ANTHROPIC_API_KEY env var missing or invalid. Set it in the MCP client's config.",
+      "Anthropic API key missing or invalid. Provide it via the ANTHROPIC_API_KEY " +
+        "env var (stdio) or the X-Anthropic-Key request header (HTTP).",
     );
   }
   return key;
@@ -77,10 +98,10 @@ server.tool(
           "back to its upstream source.",
       ),
   },
-  async ({ transcript, model, upstreamProof }) => {
+  async ({ transcript, model, upstreamProof }, extra) => {
     let apiKey: string;
     try {
-      apiKey = requireApiKey();
+      apiKey = resolveApiKey(extra);
     } catch (e) {
       return {
         isError: true,
@@ -197,13 +218,70 @@ function formatHumanSummary(result: import("./lib/distiller.js").MeetingResult):
   return lines.join("\n");
 }
 
-// ---------- main ----------
+// ---------- transports ----------
 
-async function main() {
+// stdio (default): local use in Claude Desktop / Claude Code. Key comes from
+// the ANTHROPIC_API_KEY env var in the client config.
+async function runStdio() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // MCP servers run until the client disconnects; do not log to stdout (MCP uses stdio).
   process.stderr.write(`aurais-mcp-meeting-distiller v${PACKAGE_VERSION} started (stdio)\n`);
+}
+
+// HTTP (opt-in via AURAIS_TRANSPORT=http): remote use. The caller supplies
+// their own Anthropic key per request via the X-Anthropic-Key header, so no
+// long-lived key lives on the server. Stateless (no session id). Serve behind
+// HTTPS/TLS in production — the key is sent on every request.
+async function runHttp() {
+  const port = Number(process.env.PORT ?? 3000);
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,
+    enableJsonResponse: true,
+  });
+  await server.connect(transport);
+
+  const httpServer = createServer((req, res) => {
+    if (req.method !== "POST" || new URL(req.url ?? "/", "http://localhost").pathname !== "/mcp") {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "Not found. POST MCP requests to /mcp." }));
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c as Buffer));
+    req.on("end", () => {
+      let body: unknown;
+      try {
+        body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined;
+      } catch {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON body" }));
+        return;
+      }
+      transport.handleRequest(req, res, body).catch((err: Error) => {
+        process.stderr.write(`request error: ${err.message}\n`);
+        if (!res.headersSent) {
+          res.writeHead(500, { "content-type": "application/json" });
+          res.end(JSON.stringify({ error: "internal error" }));
+        }
+      });
+    });
+  });
+
+  httpServer.listen(port, () => {
+    process.stderr.write(
+      `aurais-mcp-meeting-distiller v${PACKAGE_VERSION} started (http) on :${port}/mcp — ` +
+        `key via X-Anthropic-Key header; serve behind HTTPS\n`,
+    );
+  });
+}
+
+async function main() {
+  if ((process.env.AURAIS_TRANSPORT ?? "stdio").toLowerCase() === "http") {
+    await runHttp();
+  } else {
+    await runStdio();
+  }
 }
 main().catch((err) => {
   process.stderr.write(`fatal: ${(err as Error).message}\n`);

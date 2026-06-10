@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { ServerRequest, ServerNotification } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { deriveAgentIdentity } from "@vorionsys/aurais-core";
 import { generateBriefing } from "./lib/briefing.js";
@@ -13,9 +17,22 @@ const PACKAGE_VERSION: string = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 ).version;
 
-function requireApiKey(): string {
-  const key = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
-  if (!key.startsWith("sk-ant-")) throw new Error("ANTHROPIC_API_KEY env var missing or invalid.");
+type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
+// Resolve the Anthropic key from the X-Anthropic-Key request header (HTTP
+// transport — caller brings their own key, nothing long-lived on the server)
+// or the ANTHROPIC_API_KEY env var (stdio transport). Header wins when present.
+function resolveApiKey(extra: ToolExtra): string {
+  const header = extra.requestInfo?.headers?.["x-anthropic-key"];
+  const fromHeader = (Array.isArray(header) ? header[0] : header)?.trim() ?? "";
+  const fromEnv = process.env.ANTHROPIC_API_KEY?.trim() ?? "";
+  const key = fromHeader || fromEnv;
+  if (!key.startsWith("sk-ant-")) {
+    throw new Error(
+      "Anthropic API key missing or invalid. Provide it via the ANTHROPIC_API_KEY " +
+        "env var (stdio) or the X-Anthropic-Key request header (HTTP).",
+    );
+  }
   return key;
 }
 
@@ -29,9 +46,9 @@ server.tool(
     model: z.enum(["claude-sonnet-4-5", "claude-opus-4-5", "claude-haiku-4-5"]).optional(),
     upstreamProof: z.string().max(128).optional().describe("Optional tipHash from a prior Aurais bot run, recorded in this run's proof chain to link provenance across bots."),
   },
-  async ({ tickers, model, upstreamProof }) => {
+  async ({ tickers, model, upstreamProof }, extra) => {
     let apiKey: string;
-    try { apiKey = requireApiKey(); } catch (e) {
+    try { apiKey = resolveApiKey(extra); } catch (e) {
       return { isError: true, content: [{ type: "text", text: (e as Error).message }] };
     }
     try {
@@ -85,9 +102,44 @@ server.tool(
   },
 );
 
-async function main() {
+async function runStdio() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
   process.stderr.write(`aurais-mcp-market-scout v${PACKAGE_VERSION} started (stdio)\n`);
+}
+
+// HTTP (opt-in: AURAIS_TRANSPORT=http). Stateless; caller passes their own key
+// per request via X-Anthropic-Key. Serve behind HTTPS — the key is sent on
+// every request, so plain HTTP would expose it.
+async function runHttp() {
+  const port = Number(process.env.PORT ?? 3000);
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
+  await server.connect(transport);
+  const httpServer = createServer((req, res) => {
+    if (req.method !== "POST" || new URL(req.url ?? "/", "http://localhost").pathname !== "/mcp") {
+      res.writeHead(404, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "Not found. POST MCP requests to /mcp." }));
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (c) => chunks.push(c as Buffer));
+    req.on("end", () => {
+      let body: unknown;
+      try { body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined; }
+      catch { res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "Invalid JSON body" })); return; }
+      transport.handleRequest(req, res, body).catch((err: Error) => {
+        process.stderr.write(`request error: ${err.message}\n`);
+        if (!res.headersSent) { res.writeHead(500, { "content-type": "application/json" }); res.end(JSON.stringify({ error: "internal error" })); }
+      });
+    });
+  });
+  httpServer.listen(port, () => {
+    process.stderr.write(`aurais-mcp-market-scout v${PACKAGE_VERSION} started (http) on :${port}/mcp — key via X-Anthropic-Key header; serve behind HTTPS\n`);
+  });
+}
+
+async function main() {
+  if ((process.env.AURAIS_TRANSPORT ?? "stdio").toLowerCase() === "http") await runHttp();
+  else await runStdio();
 }
 main().catch((err) => { process.stderr.write(`fatal: ${(err as Error).message}\n`); process.exit(1); });

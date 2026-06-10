@@ -92,6 +92,31 @@ After building, register a bot in your MCP client. Example for Claude Desktop / 
 
 (Replace `meeting-distiller` with any of the other four bot names. Each is published as `@vorionsys/aurais-mcp-<name>`.)
 
+### Remote (HTTP) mode
+
+The same binary also runs as a **remote** MCP server over Streamable HTTP — set
+`AURAIS_TRANSPORT=http` (default is stdio, unchanged). In HTTP mode the caller
+supplies their **own** Anthropic key per request via the `X-Anthropic-Key`
+header, so no long-lived key lives on the server:
+
+```bash
+AURAIS_TRANSPORT=http PORT=3000 npx -y @vorionsys/aurais-mcp-meeting-distiller
+# MCP endpoint: POST http://<host>:3000/mcp
+#   header: X-Anthropic-Key: sk-ant-...
+```
+
+| | stdio (default) | http (`AURAIS_TRANSPORT=http`) |
+|---|---|---|
+| Audience | local (Claude Desktop/Code) | remote connector / shared server |
+| API key | `ANTHROPIC_API_KEY` env | `X-Anthropic-Key` request header |
+| Session | per process | stateless (no session id) |
+
+> **Serve HTTP behind TLS.** The key is sent on every request, so terminate
+> HTTPS at a proxy (or in front of the container) before exposing it. The
+> built-in server speaks plain HTTP and is meant to sit behind that boundary.
+> For first-class listing in connector UIs, OAuth 2.1 is the spec-standard auth
+> and a natural follow-up to the header-key model here.
+
 ## `@vorionsys/aurais-core` dependency
 
 All five packages consume the shared core from npm via a semver range:
