@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-verify",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Offline verifier for Aurais proof chains — checks every event's ed25519 signature, hash links, sequence, and key consistency. No network, no API key. The companion to the signed chains emitted by every @vorionsys/aurais-mcp-* bot.",
   "keywords": [
     "aurais",
