@@ -1,13 +1,15 @@
 name: Release
 
-# Tag-triggered npm publish for all 5 @vorionsys/aurais-mcp-* workspaces.
+# Tag-triggered npm publish for all 6 @vorionsys workspaces
+# (5 aurais-mcp-* bots + the aurais-verify verifier).
 #
-# Trigger:  push a tag matching `v*` (e.g. `v0.3.0`). All 5 packages are
+# Trigger:  push a tag matching `v*` (e.g. `v0.4.0`). All 6 packages are
 #           published with whatever version each declares in its
 #           package.json — keep them in lock-step.
 #
-# Auth: OIDC trusted publishing — no long-lived secret. Confirmed live in
-#   v0.3.1 (all 5 packages show `_npmUser.trustedPublisher` on the registry).
+# Auth: OIDC trusted publishing — no long-lived secret. Confirmed live since
+#   v0.3.1 (bots) / v0.4.0 (verifier); every package shows
+#   `_npmUser.trustedPublisher` on the registry.
 #
 #   Each package has a trusted publisher configured on npmjs.com:
 #     npmjs.com/package/<name>/access -> Trusted Publisher -> GitHub Actions

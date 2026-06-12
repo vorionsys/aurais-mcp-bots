@@ -151,7 +151,7 @@ unset → no auth required, exactly as before.
 
 ## `@vorionsys/aurais-core` dependency
 
-All five packages consume the shared core from npm via a semver range:
+All six packages — the five bots and the verifier — consume the shared core from npm via a semver range:
 
 ```json
 "@vorionsys/aurais-core": "^0.1.0"
