@@ -1,11 +1,13 @@
 name: Release
 
 # Tag-triggered npm publish for all 6 @vorionsys workspaces
-# (5 aurais-mcp-* bots + the aurais-verify verifier).
+# (5 aurais-mcp-* bots + the aurais-verify verifier), then a GitHub Release.
 #
 # Trigger:  push a tag matching `v*` (e.g. `v0.4.0`). All 6 packages are
 #           published with whatever version each declares in its
-#           package.json — keep them in lock-step.
+#           package.json — keep them in lock-step. After a successful
+#           publish, a GitHub Release is created for the tag with notes
+#           auto-generated from the PRs merged since the previous tag.
 #
 # Auth: OIDC trusted publishing — no long-lived secret. Confirmed live since
 #   v0.3.1 (bots) / v0.4.0 (verifier); every package shows
@@ -64,3 +66,30 @@ jobs:
       # automatic under OIDC; kept explicit as a defensive assertion.
       - name: Publish all workspaces to npm
         run: npm publish --workspaces --access=public --provenance
+
+  # After npm publish succeeds, cut a GitHub Release for the tag. Kept as a
+  # separate job so `contents: write` stays off the publish job (which only
+  # needs id-token for OIDC). Uses the runner's built-in gh CLI — no
+  # third-party action, in keeping with the no-secrets/OIDC stance above.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the Release
+    steps:
+      - uses: actions/checkout@v5
+
+      # Idempotent: a re-run of an existing tag won't fail. Tags carrying a
+      # semver pre-release suffix (e.g. v0.5.0-rc.1) are marked pre-release.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists — skipping."
+            exit 0
+          fi
+          flags=""
+          case "$tag" in *-*) flags="--prerelease" ;; esac
+          gh release create "$tag" --title "$tag" --generate-notes $flags
