@@ -44,4 +44,13 @@ jobs:
       - name: Publish all workspaces to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --workspaces --access=public --provenance
+        run: |
+          for dir in packages/*/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            ver=$(node -p "require('./${dir}package.json').version")
+            if npm view "${name}@${ver}" version &>/dev/null; then
+              echo "Already published: ${name}@${ver} — skipping"
+            else
+              npm publish "./${dir}" --access=public --provenance
+            fi
+          done
