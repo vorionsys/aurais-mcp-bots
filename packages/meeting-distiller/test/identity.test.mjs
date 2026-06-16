@@ -11,7 +11,10 @@ import { MEETING_DISTILLER_IDENTITY } from "../dist/identity.js";
 test("MEETING_DISTILLER_IDENTITY shape is intact (reconstructed-from-dist sanity check)", () => {
   assert.equal(MEETING_DISTILLER_IDENTITY.slug, "aurais-meeting-distiller");
   assert.equal(MEETING_DISTILLER_IDENTITY.tier, 3);
-  assert.equal(MEETING_DISTILLER_IDENTITY.maxEarnableTier, 4);
+  assert.equal(MEETING_DISTILLER_IDENTITY.observationClass, "BLACK_BOX");
+  // BLACK_BOX clamps maxEarnableTier to 3 even when input requests higher.
+  assert.equal(deriveAgentIdentity(MEETING_DISTILLER_IDENTITY).maxEarnableTier, 3);
+  assert.equal(deriveAgentIdentity(MEETING_DISTILLER_IDENTITY).trustCeiling, 600);
   assert.ok(Array.isArray(MEETING_DISTILLER_IDENTITY.capabilities));
   assert.ok(MEETING_DISTILLER_IDENTITY.capabilities.includes("tool:extract_decisions"));
   assert.ok(MEETING_DISTILLER_IDENTITY.capabilities.includes("tool:extract_action_items"));

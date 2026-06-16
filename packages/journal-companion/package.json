@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-journal-companion",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Aurais Journal Companion as an MCP server — paste a journal entry, get a gentle structured reflection (mood, themes, gratitude, one question) + a signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",
@@ -43,7 +43,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
-    "@vorionsys/aurais-core": "^0.1.0",
+    "@vorionsys/aurais-core": "^0.2.0",
     "zod": "^3.24.1",
     "jose": "^6.2.3"
   },
