@@ -38,7 +38,7 @@ Strict rules:
 export async function editDraft(params: {
   draft: string; audience: string; tone: string;
   anthropicApiKey: string; model?: string;
-  requestMeta?: { clientHint?: string };
+  requestMeta?: { clientHint?: string; upstreamProof?: string; packageVersion?: string };
 }): Promise<EditorResult> {
   const model = params.model ?? "claude-sonnet-4-5";
   const client = new Anthropic({ apiKey: params.anthropicApiKey });
@@ -50,7 +50,8 @@ export async function editDraft(params: {
     bot: agent.agentId, car_id: agent.carId, operation_id: agent.operationId,
     org_id: agent.orgId, deployment_id: agent.deploymentId, context_hash: agent.contextHash,
     tier: agent.currentTier, trust_ceiling: agent.trustCeiling, registration_status: agent.registrationStatus,
-    risk_level: "READ", model, runtime: "mcp-stdio", client_hint: params.requestMeta?.clientHint ?? null,
+    risk_level: "READ", model, runtime: "mcp-stdio", package_version: params.requestMeta?.packageVersion ?? null,
+    client_hint: params.requestMeta?.clientHint ?? null, upstream_proof: params.requestMeta?.upstreamProof ?? null,
     draft_length_chars: params.draft.length, draft_hash: draftHash,
     declared_audience: params.audience.slice(0, 160), declared_tone: params.tone.slice(0, 80),
   });

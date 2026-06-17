@@ -14,6 +14,23 @@ Five Aurais MCP servers — one monorepo, one shared core. Each bot is a standal
 
 Every bot also exposes `get_agent_identity` — returns the bot's CAR ID, tier, capabilities, and deployment fingerprint with no API call.
 
+## Chaining bots (cross-bot provenance)
+
+Each tool accepts an optional `upstreamProof` argument: the `tipHash` from a
+prior Aurais bot run. When supplied, it's recorded in this run's
+`session_started` event, so a verifier can trace one bot's output back to the
+upstream run that fed it — a provenance graph across bots, not just within one.
+
+```
+research-reader.read_source(paper)        → tipHash A
+writing-editor.critique_draft(            → tipHash B, whose chain records
+  draft, upstreamProof: A)                  upstream_proof = A
+```
+
+Every `session_started` event also records `package_version` (the running
+package's real version, read from its `package.json` — not a hardcode), so a
+chain attests exactly which published build produced it.
+
 ## Architecture
 
 All five bots share `@vorionsys/aurais-core` for the load-bearing trust primitives:
@@ -75,9 +92,66 @@ After building, register a bot in your MCP client. Example for Claude Desktop / 
 
 (Replace `meeting-distiller` with any of the other four bot names. Each is published as `@vorionsys/aurais-mcp-<name>`.)
 
+### Remote (HTTP) mode
+
+The same binary also runs as a **remote** MCP server over Streamable HTTP — set
+`AURAIS_TRANSPORT=http` (default is stdio, unchanged). In HTTP mode the caller
+supplies their **own** Anthropic key per request via the `X-Anthropic-Key`
+header, so no long-lived key lives on the server:
+
+```bash
+AURAIS_TRANSPORT=http PORT=3000 npx -y @vorionsys/aurais-mcp-meeting-distiller
+# MCP endpoint: POST http://<host>:3000/mcp
+#   header: X-Anthropic-Key: sk-ant-...
+```
+
+| | stdio (default) | http (`AURAIS_TRANSPORT=http`) |
+|---|---|---|
+| Audience | local (Claude Desktop/Code) | remote connector / shared server |
+| API key | `ANTHROPIC_API_KEY` env | `X-Anthropic-Key` request header |
+| Session | per process | stateless (no session id) |
+
+> **Serve HTTP behind TLS.** The key is sent on every request, so terminate
+> HTTPS at a proxy (or in front of the container) before exposing it. The
+> built-in server speaks plain HTTP and is meant to sit behind that boundary.
+
+### OAuth 2.1 (spec-standard auth for remote servers)
+
+In HTTP mode each bot can additionally act as an **OAuth 2.1 resource server**
+per the [MCP authorization spec (2025-06-18)](https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization).
+Enable it by pointing the bot at your authorization server and declaring its
+own canonical URL:
+
+```bash
+AURAIS_TRANSPORT=http PORT=3000 \
+AURAIS_OAUTH_ISSUER=https://auth.example.com \
+AURAIS_OAUTH_RESOURCE=https://bots.example.com/mcp \
+npx -y @vorionsys/aurais-mcp-meeting-distiller
+```
+
+When enabled, every MCP request must carry `Authorization: Bearer <jwt>` and
+the bot enforces the spec's MUSTs:
+
+- **Signature** — verified against the issuer's JWKS (discovered via RFC 8414 /
+  OIDC metadata, cached, rotation-aware).
+- **Audience binding (RFC 8707)** — `aud` must equal `AURAIS_OAUTH_RESOURCE`;
+  tokens minted for any other service are rejected. Inbound tokens are never
+  forwarded upstream (token passthrough is forbidden by spec).
+- **Issuer + expiry** — `iss` must match, `exp` is enforced (5 s clock tolerance).
+- **Discovery** — RFC 9728 protected-resource metadata is served at
+  `/.well-known/oauth-protected-resource` (and the path-appended form), and
+  401 responses carry `WWW-Authenticate: Bearer … resource_metadata="…"` so
+  MCP clients can find your authorization server automatically.
+
+OAuth **authenticates the caller**; it does not replace BYOK — the
+`X-Anthropic-Key` header still supplies the caller's own Anthropic key. Any
+OAuth 2.1 / OIDC provider that signs JWT access tokens and serves a JWKS works
+as the authorization server (Auth0, Keycloak, WorkOS, etc.). Both env vars
+unset → no auth required, exactly as before.
+
 ## `@vorionsys/aurais-core` dependency
 
-All five packages consume the shared core from npm via a semver range:
+All six packages — the five bots and the verifier — consume the shared core from npm via a semver range:
 
 ```json
 "@vorionsys/aurais-core": "^0.1.0"
@@ -87,15 +161,28 @@ All five packages consume the shared core from npm via a semver range:
 
 ## Verify a proof chain
 
-Run any bot, capture the JSON output's `proofChain` array, and verify offline:
+Run any bot, capture the JSON output, and verify it offline with the bundled
+verifier — no network, no API key:
 
-```ts
-import { canonicalJSON, sha256 } from "@vorionsys/aurais-core";
-import { verify } from "node:crypto";
-// for each event: recompute prev_hash, verify ed25519 sig over canonicalJSON(event - sig).
+```bash
+# verify a saved result (bare chain or full tool-result JSON both work)
+npx @vorionsys/aurais-verify result.json
+
+# or pipe a bot's output straight in
+some-aurais-bot | npx @vorionsys/aurais-verify
 ```
 
-The official verifier ships at `https://www.aurais.net/verify` (web UI) and a CLI is on the roadmap (`@vorionsys/aurais-cli`).
+It checks every event's **ed25519 signature**, the **hash links** between
+events, **sequence** integrity, and **key consistency**, then recomputes the
+tip. Exit code `0` = verified, `1` = failed. See
+[`packages/proof-verifier`](packages/proof-verifier) for the full check list,
+the library API (`verifyProofChain`), and the important distinction between
+integrity (what it proves) and signer identity (what it can't, for
+session-scoped keys).
+
+Prefer a library? `@vorionsys/aurais-core` exports the same `canonicalJSON` +
+`sha256` primitives the chain is built from. A web verifier also runs at
+`https://www.aurais.net/verify`.
 
 ## License
 

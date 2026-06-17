@@ -1,23 +1,22 @@
 {
-  "name": "@vorionsys/aurais-mcp-meeting-distiller",
+  "name": "@vorionsys/aurais-verify",
   "version": "0.5.0",
-  "description": "Aurais Meeting Distiller as an MCP server — paste a transcript in Claude Desktop / Claude Code / any MCP client, get decisions + actions + risks back with a signed Vorion proof chain (via @vorionsys/aurais-core).",
+  "description": "Offline verifier for Aurais proof chains — checks every event's ed25519 signature, hash links, sequence, and key consistency. No network, no API key. The companion to the signed chains emitted by every @vorionsys/aurais-mcp-* bot.",
   "keywords": [
-    "mcp",
     "aurais",
     "vorion",
-    "meeting-notes",
-    "ai-agent",
-    "governance",
-    "proof-chain"
+    "proof-chain",
+    "verify",
+    "ed25519",
+    "provenance"
   ],
   "license": "Apache-2.0",
   "author": "Vorion LLC <team@vorion.org>",
-  "homepage": "https://github.com/voriongit/aurais-mcp-bots/tree/main/packages/meeting-distiller",
+  "homepage": "https://github.com/voriongit/aurais-mcp-bots/tree/main/packages/proof-verifier",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/voriongit/aurais-mcp-bots.git",
-    "directory": "packages/meeting-distiller"
+    "directory": "packages/proof-verifier"
   },
   "bugs": {
     "url": "https://github.com/voriongit/aurais-mcp-bots/issues"
@@ -26,7 +25,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aurais-mcp-meeting-distiller": "dist/index.js"
+    "aurais-verify": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -35,18 +34,14 @@
   ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.mjs",
     "prepack": "node -e \"require('node:fs').copyFileSync('../../LICENSE','LICENSE')\""
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
-    "@modelcontextprotocol/sdk": "^1.28.0",
-    "@vorionsys/aurais-core": "^0.2.0",
-    "zod": "^3.24.1",
-    "jose": "^6.2.3"
+    "@vorionsys/aurais-core": "^0.2.0"
   },
   "devDependencies": {
     "tsx": "^4.20.0",

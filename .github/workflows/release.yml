@@ -1,13 +1,28 @@
 name: Release
 
-# Tag-triggered npm publish for all 5 @vorionsys/aurais-mcp-* workspaces.
+# Tag-triggered npm publish for all 6 @vorionsys workspaces
+# (5 aurais-mcp-* bots + the aurais-verify verifier), then a GitHub Release.
 #
-# Trigger:  push a tag matching `v*` (e.g. `v0.3.0`). All 5 packages are
+# Trigger:  push a tag matching `v*` (e.g. `v0.4.0`). All 6 packages are
 #           published with whatever version each declares in its
-#           package.json — keep them in lock-step.
+#           package.json — keep them in lock-step. After a successful
+#           publish, a GitHub Release is created for the tag with notes
+#           auto-generated from the PRs merged since the previous tag.
 #
-# Required secrets:
-#   - NPM_TOKEN  : @vorionsys-scoped automation token with publish rights.
+# Auth: OIDC trusted publishing — no long-lived secret. Confirmed live since
+#   v0.3.1 (bots) / v0.4.0 (verifier); every package shows
+#   `_npmUser.trustedPublisher` on the registry.
+#
+#   Each package has a trusted publisher configured on npmjs.com:
+#     npmjs.com/package/<name>/access -> Trusted Publisher -> GitHub Actions
+#       Organization/user: voriongit
+#       Repository:        aurais-mcp-bots
+#       Workflow filename: release.yml   (filename only, not the full path)
+#       Environment:       (none — keep blank; this job sets no environment)
+#   It also needs npm CLI >= 11.5.1 (the upgrade step below) and the
+#   `id-token: write` permission.
+#
+# No secrets required. NPM_TOKEN has been retired.
 
 on:
   push:
@@ -19,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # required for npm --provenance attestations
+      id-token: write  # required for OIDC trusted publishing + provenance
     steps:
       - uses: actions/checkout@v5
 
@@ -28,6 +43,12 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+
+      # OIDC trusted publishing needs npm >= 11.5.1; Node 22 ships npm 10.x,
+      # which silently ignores OIDC and falls back to the token. Upgrade so
+      # OIDC actually engages.
+      - name: Upgrade npm for OIDC trusted publishing
+        run: npm install -g npm@latest
 
       - name: Install
         run: npm ci
@@ -41,16 +62,34 @@ jobs:
       - name: Test
         run: npm test --workspaces --if-present
 
+      # Authenticates via OIDC trusted publishing (no token). --provenance is
+      # automatic under OIDC; kept explicit as a defensive assertion.
       - name: Publish all workspaces to npm
+        run: npm publish --workspaces --access=public --provenance
+
+  # After npm publish succeeds, cut a GitHub Release for the tag. Kept as a
+  # separate job so `contents: write` stays off the publish job (which only
+  # needs id-token for OIDC). Uses the runner's built-in gh CLI — no
+  # third-party action, in keeping with the no-secrets/OIDC stance above.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # create the Release
+    steps:
+      - uses: actions/checkout@v5
+
+      # Idempotent: a re-run of an existing tag won't fail. Tags carrying a
+      # semver pre-release suffix (e.g. v0.5.0-rc.1) are marked pre-release.
+      - name: Create GitHub Release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          for dir in packages/*/; do
-            name=$(node -p "require('./${dir}package.json').name")
-            ver=$(node -p "require('./${dir}package.json').version")
-            if npm view "${name}@${ver}" version &>/dev/null; then
-              echo "Already published: ${name}@${ver} — skipping"
-            else
-              npm publish "./${dir}" --access=public --provenance
-            fi
-          done
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists — skipping."
+            exit 0
+          fi
+          flags=""
+          case "$tag" in *-*) flags="--prerelease" ;; esac
+          gh release create "$tag" --title "$tag" --generate-notes $flags

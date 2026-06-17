@@ -5,7 +5,7 @@ export const MARKET_SCOUT_IDENTITY: DeriveInput = {
   version: "0.2.0",
   name: "Aurais Market Scout",
   tier: 3,
-  maxEarnableTier: 4,
+  observationClass: "BLACK_BOX",
   capabilities: [
     "tool:fetch_market_data",
     "tool:compute_indicators",

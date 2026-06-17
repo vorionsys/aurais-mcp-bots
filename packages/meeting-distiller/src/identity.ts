@@ -8,7 +8,7 @@ export const MEETING_DISTILLER_IDENTITY: DeriveInput = {
   version: "0.1.0",
   name: "Aurais Meeting Distiller",
   tier: 3,
-  maxEarnableTier: 4,
+  observationClass: "BLACK_BOX",
   capabilities: [
     "tool:extract_decisions",
     "tool:extract_action_items",

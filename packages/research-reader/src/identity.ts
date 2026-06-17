@@ -5,7 +5,7 @@ export const RESEARCH_READER_IDENTITY: DeriveInput = {
   version: "0.1.0",
   name: "Aurais Research Reader",
   tier: 3,
-  maxEarnableTier: 4,
+  observationClass: "BLACK_BOX",
   capabilities: [
     "tool:extract_thesis",
     "tool:extract_claims_with_quotes",

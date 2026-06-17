@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-research-reader",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Aurais Research Reader as an MCP server — paste a paper or article, get a structured read with verbatim-verified quotes + a signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",
@@ -15,7 +15,7 @@
   "homepage": "https://github.com/voriongit/aurais-mcp-bots/tree/main/packages/research-reader",
   "repository": {
     "type": "git",
-    "url": "https://github.com/voriongit/aurais-mcp-bots.git",
+    "url": "git+https://github.com/voriongit/aurais-mcp-bots.git",
     "directory": "packages/research-reader"
   },
   "bugs": {
@@ -25,7 +25,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aurais-mcp-research-reader": "./dist/index.js"
+    "aurais-mcp-research-reader": "dist/index.js"
   },
   "files": [
     "dist",
@@ -43,8 +43,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.100.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
-    "@vorionsys/aurais-core": "^0.1.0",
-    "zod": "^3.24.1"
+    "@vorionsys/aurais-core": "^0.2.0",
+    "zod": "^3.24.1",
+    "jose": "^6.2.3"
   },
   "devDependencies": {
     "tsx": "^4.20.0",

@@ -1,108 +1,65 @@
-# CLAUDE.md — aurais-mcp-bots
+# CLAUDE.md
 
-Developer reference for AI agents and humans working in this repo.
+Guidance for Claude Code (and humans) working in this repository.
 
-## Repo overview
+## What this is
 
-Five Aurais MCP servers in an npm workspaces monorepo. Each package is a standalone
-Model Context Protocol server. All five share `@vorionsys/aurais-core` (published on npm)
-for proof-chain signing, CAR identity derivation, and hashing helpers.
+An npm-workspaces monorepo that publishes **six** `@vorionsys` packages in
+lock-step:
+
+- **Five Aurais MCP servers ("bots")** — `packages/journal-companion`,
+  `market-scout`, `meeting-distiller`, `research-reader`, `writing-editor`.
+  Each is a standalone Model Context Protocol server (stdio by default) that
+  calls Claude and emits a **signed Aurais proof chain** for every run.
+- **One verifier** — `packages/proof-verifier` → `@vorionsys/aurais-verify`, a
+  no-network CLI that checks proof chains offline (Ed25519 signatures, hash
+  links, sequence, key consistency).
+
+All six depend on the published **`@vorionsys/aurais-core`** (`^0.1.0`) for the
+trust primitives: `ProofChain`, `deriveAgentIdentity`, `canonicalJSON`,
+`sha256`.
+
+## Layout
 
 ```
 packages/
-  journal-companion/    @vorionsys/aurais-mcp-journal-companion   tool: reflect_on_entry
-  market-scout/         @vorionsys/aurais-mcp-market-scout        tool: brief_tickers
-  meeting-distiller/    @vorionsys/aurais-mcp-meeting-distiller   tool: distill_meeting
-  research-reader/      @vorionsys/aurais-mcp-research-reader     tool: read_source
-  writing-editor/       @vorionsys/aurais-mcp-writing-editor      tool: critique_draft
+  journal-companion/  market-scout/  meeting-distiller/
+  research-reader/    writing-editor/        # the 5 bots
+  proof-verifier/                            # @vorionsys/aurais-verify
 ```
 
-All five also expose `get_agent_identity` (no API call — returns CAR ID + deployment fingerprint).
+Per package: `src/` (TypeScript) → `dist/` (built, **gitignored**),
+`test/*.test.mjs` (`node:test`).
 
-## Inside each package
-
-```
-src/
-  index.ts        MCP server wiring (tool definitions, stdio transport)
-  identity.ts     The bot's *_IDENTITY constant (slug, version, capabilities)
-  lib/<name>.ts   Domain logic (analyzer / distiller / briefing / etc.)
-test/
-  *.test.mjs      Node built-in test runner
-```
-
-## Development commands
+## Commands
 
 ```bash
-npm install                              # install all workspaces
-npm run typecheck --workspaces --if-present
-npm run build --workspaces --if-present  # tsc → dist/ in each package
-npm test --workspaces --if-present
+npm ci                                         # install
+npm run typecheck --workspaces --if-present    # tsc --noEmit
+npm run build     --workspaces --if-present    # tsc -> dist/
+npm test          --workspaces --if-present    # node:test
 ```
 
-Per-package dev server (stdio MCP):
+Run a bot over stdio (needs an API key):
 
 ```bash
-cd packages/journal-companion
-npm run dev   # tsx src/index.ts
+ANTHROPIC_API_KEY=… node packages/<bot>/dist/index.js
 ```
 
-## CI
+## Conventions
 
-`.github/workflows/ci.yml` — runs on push to `main` and every PR:
+- **Lock-step versioning** — all six packages share one version; bump together.
+- **Releases** — tag-triggered OIDC trusted publishing (no tokens) plus an
+  auto-created GitHub Release. See [`RELEASING.md`](RELEASING.md).
+- **Transports** — stdio is the default. `AURAIS_TRANSPORT=http` enables a
+  remote HTTP transport with a per-request `X-Anthropic-Key`; an opt-in
+  OAuth 2.1 resource-server mode is available over HTTP. Both unset → no auth,
+  stdio.
+- **Provenance** — every proof chain records `package_version`, read at runtime
+  from the package's own `package.json` (never hardcoded).
+- **Branching** — develop on a feature branch, PR into `main`; the
+  `build-and-test` CI check runs on PRs.
 
-1. `npm ci`
-2. `npm run typecheck --workspaces --if-present`
-3. `npm run build --workspaces --if-present`
-4. `npm test --workspaces --if-present`
+## Current state (snapshot: 2026-06)
 
-`actions/checkout@v5` runs with `persist-credentials: false` to avoid a duplicate
-Authorization header that caused HTTP 400 on earlier npm installs.
-
-## Releasing
-
-**`.github/workflows/release.yml`** — tag-triggered. Push a `v*` tag and all five packages
-publish to npm with SLSA provenance attestations.
-
-```bash
-# bump versions in all five package.json files, commit, then:
-git tag v0.4.0
-git push origin v0.4.0
-```
-
-Required secrets (repo → Settings → Secrets → Actions):
-- `NPM_TOKEN` — @vorionsys-scoped automation token with publish rights.
-
-`GH_TOKEN` is **no longer needed** — `@vorionsys/aurais-core` is on npm, not a git URL.
-
-The publish step is idempotent: it skips any workspace whose current version is
-already on npm, so re-running a tag workflow after a partial failure is safe.
-
-## Shared dependency: @vorionsys/aurais-core
-
-Source: `voriongit/aurais-core`  
-Published: `@vorionsys/aurais-core@0.1.0` on npm (public, no token needed)
-
-Key exports: `ProofChain`, `deriveAgentIdentity`, `canonicalJSON`, `sha256`.
-
-To upgrade core: bump the `^0.1.0` range in all five `package.json` files, update
-`package-lock.json` via `npm install`, and cut a new release tag.
-
-## Pending: Step 3 consolidation
-
-This repo is **step 2 of 3** in the aurais-mcp consolidation:
-- Step 1: extracted `@vorionsys/aurais-core` → `voriongit/aurais-core` ✓
-- Step 2: published all five MCP bots to npm at v0.3.0 ✓
-- Step 3: retire the duplicate copies of the MCP bots inside `voriongit/aurais`
-  (the Next.js app) and point it at the npm packages instead. **NOT YET DONE.**
-
-## Architecture note
-
-Proof chain flow per bot run:
-
-```
-session_started → commentary_generated → briefing_assembled
-```
-
-Each event is Ed25519-signed and sha256-chained to the previous. The final
-`proofChain` array in every bot's JSON output can be verified offline or at
-`https://www.aurais.net/verify`.
+All six packages published at **0.4.0** on npm with OIDC provenance.
