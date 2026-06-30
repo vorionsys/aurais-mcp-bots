@@ -12,8 +12,8 @@
     "indicators"
   ],
   "license": "Apache-2.0",
-  "author": "Vorion LLC <team@vorion.org>",
-  "homepage": "https://github.com/voriongit/aurais-mcp-bots/tree/main/packages/market-scout",
+  "author": "Vorion LLC",
+  "homepage": "https://aurais.net",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/voriongit/aurais-mcp-bots.git",
@@ -54,5 +54,9 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
