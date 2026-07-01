@@ -15,11 +15,11 @@
   "homepage": "https://aurais.net",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/voriongit/aurais-mcp-bots.git",
+    "url": "git+https://github.com/vorionsys/aurais-mcp-bots.git",
     "directory": "packages/proof-verifier"
   },
   "bugs": {
-    "url": "https://github.com/voriongit/aurais-mcp-bots/issues"
+    "url": "https://github.com/vorionsys/aurais-mcp-bots/issues"
   },
   "type": "module",
   "main": "dist/index.js",

@@ -5,13 +5,13 @@
   "description": "Monorepo for the 5 Aurais MCP servers (journal companion, market scout, meeting distiller, research reader, writing editor). All bots dedup'd onto @vorionsys/aurais-core for proof-chain + CAR identity.",
   "license": "Apache-2.0",
   "author": "Vorion LLC <team@vorion.org>",
-  "homepage": "https://github.com/voriongit/aurais-mcp-bots",
+  "homepage": "https://github.com/vorionsys/aurais-mcp-bots",
   "repository": {
     "type": "git",
-    "url": "https://github.com/voriongit/aurais-mcp-bots.git"
+    "url": "https://github.com/vorionsys/aurais-mcp-bots.git"
   },
   "bugs": {
-    "url": "https://github.com/voriongit/aurais-mcp-bots/issues"
+    "url": "https://github.com/vorionsys/aurais-mcp-bots/issues"
   },
   "type": "module",
   "engines": {
