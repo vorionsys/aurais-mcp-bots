@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-meeting-distiller",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Aurais Meeting Distiller as an MCP server — paste a transcript in Claude Desktop / Claude Code / any MCP client, get decisions + actions + risks back with a signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",

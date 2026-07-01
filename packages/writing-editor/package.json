@@ -1,6 +1,6 @@
 {
   "name": "@vorionsys/aurais-mcp-writing-editor",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Aurais Writing Editor as an MCP server — paste a draft + audience + tone, get structural, sentence-level, and tone critique. Never rewrites your prose. Signed Vorion proof chain (via @vorionsys/aurais-core).",
   "keywords": [
     "mcp",
