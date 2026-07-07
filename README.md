@@ -1,6 +1,6 @@
 # aurais-mcp-bots
 
-Five Aurais MCP servers — one monorepo, one shared core. Each bot is a standalone Model Context Protocol server you can drop into Claude Desktop, Claude Code, or any MCP client. Every run produces a signed Aurais proof chain you can verify offline.
+Five Aurais MCP servers plus an offline proof-chain verifier — one monorepo, one shared core. Each bot is a standalone Model Context Protocol server you can drop into Claude Desktop, Claude Code, or any MCP client. Every run produces a signed Aurais proof chain you can verify offline (see [Verify a proof chain](#verify-a-proof-chain)).
 
 ## The bots
 
@@ -45,7 +45,7 @@ What each bot keeps for itself:
 - **`lib/<domain>.ts`** — the bot's domain logic (analyzer / distiller / briefing / etc).
 - **`index.ts`** — the MCP server wiring (tool definitions, transport).
 
-This is **step 2 of 3** in the aurais-mcp consolidation. Step 1 extracted `@vorionsys/aurais-core` (`voriongit/aurais-core`). Step 3 will retire the duplicate copies inside `voriongit/aurais` (the Next.js app) once `@vorionsys/aurais-core` is published to npm.
+This was **step 2 of 3** in the aurais-mcp consolidation — all three steps are now complete. Step 1 extracted [`@vorionsys/aurais-core`](https://www.npmjs.com/package/@vorionsys/aurais-core) (canonical repo `vorionsys/aurais-core`, published to npm); step 2 (this repo) deduped the bots onto it and published all packages; step 3 retired the duplicate copies inside the Aurais Next.js app, which now depends on `@vorionsys/aurais-core` directly.
 
 ## Provenance
 
