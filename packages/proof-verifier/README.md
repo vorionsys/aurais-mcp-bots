@@ -1,7 +1,7 @@
 # @vorionsys/aurais-verify
 
 Offline verifier for **Aurais proof chains** — the signed, hash-chained event
-logs emitted by every [`@vorionsys/aurais-mcp-*`](https://github.com/voriongit/aurais-mcp-bots)
+logs emitted by every [`@vorionsys/aurais-mcp-*`](https://github.com/vorionsys/aurais-mcp-bots)
 bot. No network, no API key: it checks the cryptography that's already in the
 chain.
 
