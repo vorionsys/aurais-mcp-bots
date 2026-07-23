@@ -49,7 +49,7 @@ This was **step 2 of 3** in the aurais-mcp consolidation — all three steps are
 
 ## Provenance
 
-Source: `voriongit/vorion` monorepo, working tree on branch `pre-split-capture-20260418` at HEAD `94a6de87720b2280d59e36442370078275bdc959` on 2026-04-25.
+Source: the private `voriongit/vorion` monorepo (not publicly accessible), working tree on branch `pre-split-capture-20260418` at HEAD `94a6de87720b2280d59e36442370078275bdc959` on 2026-04-25.
 
 Each package was extracted from `vorion/packages/aurais-mcp-<name>/`. Per-bot source files (`index.ts`, `lib/<domain>.ts`, `identity.ts`) were preserved unchanged — only the duplicated `proof-chain.ts`, `car-identity.ts`, and inlined `canonicalJSON` were removed and replaced with imports from `@vorionsys/aurais-core`.
 
